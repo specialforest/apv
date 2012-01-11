@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="app_name">PDF Viewer</string>
+
+<!-- #ifdef lite -->
+<string name="app_name">APV PDF Viewer</string>
+<!--  #endif -->
+
+<!-- #ifdef pro -->
+<!-- <string name="app_name">APV PDF Viewer Pro</string> -->
+<!--  #endif -->
+
 	<string name="about">About</string>
-	<string name="goto_page">Go to page...</string>
+	<string name="goto_page">Go to page…</string>
 	<string name="goto_page_dialog_title">Go to page</string>
 	<string name="goto_page_go_button">Go</string>
 	<string name="rotate_page_left">Rotate left</string>
 	<string name="rotate_page_right">Rotate right</string>
-	<string name="find_text">Find...</string>
+	<string name="find_text">Find…</string>
 	<string name="find_dialog_title">Find text</string>
 	<string name="find_go_button">Find</string>
 	<string name="find_cancel_button">Cancel</string>
 	<string name="clear_find_text">Clear find</string>
-	<string name="choose_file">Open...</string>
+	<string name="choose_file">Open…</string>
 	<string name="toggle_invert">Invert</string>
 	<string name="toggle_fine_zoom">Toggle fine zoom</string>
 	<string name="set_as_home">Set current folder as home</string>
@@ -237,4 +245,8 @@
 	<string name="keep_on">Keep screen on while reading</string>
 	<string name="show_zoom_on_scroll">Show zoom when scrolling</string>
 	<string name="history">Show recent files</string>
+    <string name="table_of_contents">Table of Contents</string>
+    <string name="toc_dialog_title">Table of Contents</string>
+    <string name="close">Close</string>
+    <string name="text_reflow">Text Reflow</string>
 </resources>

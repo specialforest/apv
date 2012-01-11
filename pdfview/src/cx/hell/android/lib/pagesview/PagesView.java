@@ -5,12 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import cx.hell.android.pdfview.Actions;
-import cx.hell.android.pdfview.Bookmark;
-import cx.hell.android.pdfview.BookmarkEntry;
-import cx.hell.android.pdfview.OpenFileActivity;
-import cx.hell.android.pdfview.Options;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -30,6 +24,11 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.Scroller;
+import cx.hell.android.pdfview.Actions;
+import cx.hell.android.pdfview.Bookmark;
+import cx.hell.android.pdfview.BookmarkEntry;
+import cx.hell.android.pdfview.OpenFileActivity;
+import cx.hell.android.pdfview.Options;
 
 /**
  * View that simplifies displaying of paged documents.
@@ -37,7 +36,7 @@ import android.widget.Scroller;
  * TODO: use more floats for better align, or use more ints for performance ;) (that is, really analyse what should be used when)
  */
 public class PagesView extends View implements 
-View.OnTouchListener, OnImageRenderedListener, View.OnKeyListener {
+		View.OnTouchListener, OnImageRenderedListener, View.OnKeyListener {
 	/**
 	 * Logging tag.
 	 */
@@ -737,7 +736,7 @@ View.OnTouchListener, OnImageRenderedListener, View.OnKeyListener {
 		this.lastControlsUseMillis = System.currentTimeMillis();
 		Log.v(TAG, ""+event.getAction());
 		if (!gestureDetector.onTouchEvent(event)) {
-			Log.v(TAG, ""+event.getAction());
+			// Log.v(TAG, ""+event.getAction());
 			if (event.getAction() == MotionEvent.ACTION_DOWN) {
 				downX = event.getX();
 				downY = event.getY();

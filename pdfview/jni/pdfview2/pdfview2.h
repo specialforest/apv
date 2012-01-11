@@ -53,3 +53,11 @@ int convert_box_pdf_to_apv(pdf_t *pdf, int page, fz_bbox *bbox);
 int find_next(JNIEnv *env, jobject this, int direction);
 pdf_page* get_page(pdf_t *pdf, int pageno);
 
+
+// #ifdef pro
+// jobject create_outline_recursive(JNIEnv *env, jclass outline_class, const fz_outline *outline);
+// char* extract_text(pdf_t *pdf, int pageno);
+// #endif
+
+
+

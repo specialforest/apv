@@ -3,7 +3,9 @@ package cx.hell.android.pdfview;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Date;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -33,25 +35,40 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.View.OnClickListener;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import cx.hell.android.lib.pagesview.FindResult;
 import cx.hell.android.lib.pagesview.PagesView;
+import cx.hell.android.lib.pdf.PDF;
+
+// #ifdef pro
+// import java.util.Stack;
+// import android.view.ViewGroup.LayoutParams;
+// import android.widget.ScrollView;
+// import android.text.method.ScrollingMovementMethod;
+// import cx.hell.android.lib.pdf.PDF.Outline;
+// import cx.hell.android.lib.view.TreeView;
+// #endif
 
 
 /**
  * Document display activity.
  */
+@SuppressWarnings("unused")
 public class OpenFileActivity extends Activity implements SensorEventListener {
 	
 	private final static String TAG = "cx.hell.android.pdfview";
@@ -67,6 +84,26 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	
 	private PDF pdf = null;
 	private PagesView pagesView = null;
+// #ifdef pro
+// 	
+// 	/**
+// 	 * Complete top-level view (layout) of text reflow.
+// 	 * Hidden (with Visibility.GONE) when not in text reflow mode.
+// 	 */
+// 	private View textReflowView = null;
+// 	
+// 	/**
+// 	 * View that contains scrollable view(s) visible in text reflow mode.
+// 	 */
+// 	private ScrollView textReflowScrollView = null;
+// 	
+// 	/**
+// 	 * TextView visible in text reflow mode, contains text extracted from PDF file.
+// 	 */
+// 	private TextView textReflowTextView = null;
+// 
+// #endif
+
 	private PDFPagesProvider pdfPagesProvider = null;
 	private Actions actions = null;
 	
@@ -83,6 +120,10 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	private MenuItem clearFindTextMenuItem = null;
 	private MenuItem chooseFileMenuItem = null;
 	private MenuItem optionsMenuItem = null;
+	// #ifdef pro
+// 	private MenuItem tableOfContentsMenuItem = null;
+// 	private MenuItem textReflowMenuItem = null;
+	// #endif
 	
 	private EditText pageNumberInputField = null;
 	private EditText findTextInputField = null;
@@ -139,6 +180,13 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 	private int prevOrientation;
 
 	private boolean history = true;
+	
+// #ifdef pro
+// 	/**
+// 	 * If true, then current activity is in text reflow mode.
+// 	 */
+// 	private boolean textReflowMode = false;
+// #endif
 
 	/**
      * Called when the activity is first created.
@@ -170,6 +218,42 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
         if (!this.pdf.isValid()) {
         	finish();
         }
+        
+// #ifdef pro
+//         /* TODO: move to separate method */
+//         LinearLayout textReflowLayout = new LinearLayout(this);
+//         this.textReflowView = textReflowLayout;
+//         textReflowLayout.setOrientation(LinearLayout.VERTICAL);
+//         this.textReflowScrollView = new ScrollView(this);
+//         this.textReflowTextView = new TextView(this);
+//         LinearLayout textReflowButtonsLayout = new LinearLayout(this);
+//         textReflowButtonsLayout.setGravity(Gravity.CENTER);
+//         textReflowButtonsLayout.setOrientation(LinearLayout.HORIZONTAL);
+//         Button textReflowPrevPageButton = new Button(this);
+//         textReflowPrevPageButton.setText("Prev");
+//         textReflowPrevPageButton.setOnClickListener(new OnClickListener() {
+// 			public void onClick(View v) {
+// 				OpenFileActivity.this.nextPage(-1);
+// 			}
+//         });
+//         Button textReflowNextPageButton = new Button(this);
+//         textReflowNextPageButton.setText("Next");
+//         textReflowNextPageButton.setOnClickListener(new OnClickListener() {
+//         	public void onClick(View v) {
+//         		OpenFileActivity.this.nextPage(1);
+//         	}
+//         });
+//         textReflowButtonsLayout.addView(textReflowPrevPageButton);
+//         textReflowButtonsLayout.addView(textReflowNextPageButton);
+// 
+//         this.textReflowScrollView.addView(this.textReflowTextView);
+//         textReflowLayout.addView(this.textReflowScrollView, new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT, 1));
+//         textReflowLayout.addView(textReflowButtonsLayout, new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT, 0));
+// 
+//         activityLayout.addView(this.textReflowView);
+//         this.textReflowView.setVisibility(View.GONE);
+//         AndroidReflections.setScrollbarFadingEnabled(this.textReflowView, true);
+// #endif
         
         // the find buttons
         this.findButtonsLayout = new LinearLayout(this);
@@ -336,7 +420,13 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 		else
 			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		this.pageNumberTextView.setVisibility(pageNumberAnim == null ? View.GONE : View.VISIBLE);
+// #ifdef pro
+// 		this.zoomLayout.setVisibility((zoomAnim == null || this.textReflowMode) ? View.GONE : View.VISIBLE);
+// #endif
+		
+// #ifdef lite
 		this.zoomLayout.setVisibility(zoomAnim == null ? View.GONE : View.VISIBLE);
+// #endif
         
         showAnimated(true);
 	}
@@ -456,6 +546,27 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	}
     }
     
+
+// #ifdef pro
+//     /**
+//      * Handle keys.
+//      * Handles back key by switching off text reflow mode if enabled.
+//      * @param keyCode key pressed
+//      * @param event key press event
+//      */
+//     @Override
+//     public boolean onKeyDown(int keyCode, KeyEvent event) {
+//     	if (keyCode == KeyEvent.KEYCODE_BACK) {
+//     	    if (this.textReflowMode) {
+//     	    	this.setTextReflowMode(false);
+//     	    	return true; /* meaning we've handled event */
+//     	    }
+//     	}
+//     	return super.onKeyDown(keyCode, event);
+//     }
+// #endif
+    
+    
     /**
      * Handle menu.
      * @param menuItem selected menu item
@@ -482,7 +593,19 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     		startActivity(new Intent(this, ChooseFileActivity.class));
     	} else if (menuItem == this.optionsMenuItem) {
     		startActivity(new Intent(this, Options.class));
-		} 
+    	// #ifdef pro
+// 		} else if (menuItem == this.tableOfContentsMenuItem) {
+// 			Outline outline = this.pdf.getOutline();
+// 			if (outline != null) {
+// 				this.showTableOfContentsDialog(outline);
+// 			} else {
+// 				/* TODO: show toast info about toc not found */
+// 			}
+// 		} else if (menuItem == this.textReflowMenuItem) {
+// 			this.setTextReflowMode(! this.textReflowMode);
+// 
+		// #endif
+		}
     	return false;
     }
     
@@ -520,6 +643,12 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     };
     
     public void showZoom() {
+// #ifdef pro
+//     	if (this.textReflowMode) {
+//     		zoomLayout.setVisibility(View.GONE);
+//     		return;
+//     	}
+// #endif
     	if (zoomAnim == null) {
     		zoomLayout.setVisibility(View.GONE);
     		return;
@@ -532,6 +661,12 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     }
     
     private void fadeZoom() {
+// #ifdef pro
+//     	if (this.textReflowMode) {
+//     		this.zoomLayout.setVisibility(View.GONE);
+//     		return;
+//     	}
+// #endif
     	if (eink || zoomAnim == null) {
     		zoomLayout.setVisibility(View.GONE);
     	}
@@ -703,6 +838,11 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	/* The following appear on the second page.  The find item can safely be kept
     	 * there since it can also be accessed from the search key on most devices.
     	 */
+    	
+    	// #ifdef pro
+//     	this.tableOfContentsMenuItem = menu.add(R.string.table_of_contents);
+//     	this.textReflowMenuItem = menu.add(R.string.text_reflow);
+    	// #endif
 		this.findTextMenuItem = menu.add(R.string.find_text);
     	this.aboutMenuItem = menu.add(R.string.about);
     	return true;
@@ -988,7 +1128,110 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
     	Thread finderThread = new Thread(finder);
     	finderThread.start();
     }
-
+    
+    // #ifdef pro
+//     /**
+//      * Build and display dialog containing table of contents.
+//      * @param outline root of TOC tree
+//      */
+//     private void showTableOfContentsDialog(Outline outline) {
+//     	Log.d(TAG, "table of contents dialog...");
+//     	if (outline == null) {
+//  		// TODO: toast about no toc
+//     		return;
+//     	}
+//     	final Dialog dialog = new Dialog(this);
+//     	dialog.setTitle(R.string.toc_dialog_title);
+//     	LinearLayout contents = new LinearLayout(this);
+//     	contents.setOrientation(LinearLayout.VERTICAL);
+//     	LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+//     	params.leftMargin = 5;
+//     	params.rightMargin = 5;
+//     	params.bottomMargin = 2;
+//     	params.topMargin = 2;
+//     	
+//     	TreeView tocTree = new TreeView(this);
+//     	tocTree.setCacheColorHint(0);
+//     	tocTree.setTree(outline);
+//     	tocTree.setOnItemClickListener(new OnItemClickListener() {
+//     		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//     			Log.d(TAG, "onItemClick(" + parent + ", " + view + ", " + position + ", " + id);
+//     			TreeView treeView = (TreeView)parent;
+//     			TreeView.TreeNode treeNode = treeView.getTreeNodeAtPosition(position);
+//     			Outline outline = (Outline) treeNode;
+//     			int pageNumber = outline.page;
+//     			OpenFileActivity.this.gotoPage(pageNumber);
+//     			dialog.dismiss();
+//     		}
+//     	});
+//     	
+//     	//final ArrayList<String> tocList = new ArrayList<String>();
+//     	//final ArrayList<Integer> tocPages = new ArrayList<Integer>();
+//     	//this.outlineToArrayList(tocList, tocPages, outline, 0);
+//     	//ListView tableOfContentsListView = new ListView(this);
+//     	//tableOfContentsListView.setCacheColorHint(0);
+//     	//tableOfContentsListView.setAdapter(new ArrayAdapter<String>(this, R.layout.toc_list_item, tocList));
+//     	//tableOfContentsListView.setOnItemClickListener(new OnItemClickListener() {
+// 		//	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+// 		//		int pageNumber = tocPages.get(position);
+// 		//		OpenFileActivity.this.gotoPage(pageNumber);
+// 		//		dialog.dismiss();
+// 		//	}});
+//     	contents.addView(tocTree, params);
+//     	dialog.setContentView(contents);
+//     	dialog.show();
+//     }
+// 
+//     
+//     /**
+//      * Quick and dirty way to reduce tree to two lists for TOC dialog.
+//      */
+//     private void outlineToArrayList(List<String> list, List<Integer> pages, Outline outline, int level) {
+//     	final class Pair {
+//     		public Pair(int level, Outline outline) {
+//     			this.level = level;
+//     			this.outline = outline;
+//     		}
+//     		public int level;
+//     		public Outline outline;
+//     	};
+//     	
+//     	Stack<Pair> stack = new Stack<Pair>();
+//     	stack.push(new Pair(0, outline));
+//     	
+//     	Log.d(TAG, "converting table of contents...");
+//     	
+//     	while(! stack.empty()) {
+//     		Pair p = stack.pop();
+//     		//Log.d(TAG, "got " + p.outline.title + " / " + p.outline.page + " from stack");
+//     		//Log.d(TAG, "  down points to: " + ((p.outline.down != null) ? p.outline.down.title : null));
+//     		//Log.d(TAG, "  next points to: " + ((p.outline.next != null) ? p.outline.next.title : null));
+//     		String s = "";
+//     		for(int i = 0; i < p.level; ++i) s += " ";
+//     		s += p.outline.title;
+//     		list.add(s);
+//     		pages.add(p.outline.page);
+//     		if (p.outline.next != null) {
+//     			stack.push(new Pair(p.level, p.outline.next));
+//     		}
+//     		if (p.outline.down != null) {
+//     			stack.push(new Pair(p.level + 1, p.outline.down));
+//     		}
+//     	}
+//     	
+//     	/*
+//     	if (outline == null) return;
+//     	String s = "";
+//     	for(int i = 0; i < level; ++i) s += " ";
+//     	s += outline.title;
+//     	list.add(s);
+//     	pages.add(outline.page);
+//     	if (outline.down != null) this.outlineToArrayList(list, pages, outline.down, level+1);
+//     	if (outline.next != null) this.outlineToArrayList(list, pages, outline.next, level);
+//     	*/
+//     }
+    // #endif
+    
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
 	}
 
@@ -1014,4 +1257,57 @@ public class OpenFileActivity extends Activity implements SensorEventListener {
 				setOrientation(ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE);
 		}
 	}
+	
+	
+// #ifdef pro
+// 	/**
+// 	 * Switch text reflow mode and set this.textReflowMode by hiding and showing relevant interface elements.
+// 	 * @param mode if true ten show text reflow view, otherwise hide text reflow view
+// 	 */
+// 	private void setTextReflowMode(boolean mode) {
+// 		if (mode) {
+// 			Log.d(TAG, "text reflow");
+// 			int page = this.pagesView.getCurrentPage();
+// 			String text = this.pdf.getText(page);
+// 			Log.d(TAG, "text of page " + page + " is: " + text);
+// 			this.textReflowTextView.setText(text);
+// 			this.textReflowScrollView.scrollTo(0,0);
+// 			this.textReflowMenuItem.setTitle("Close Text Reflow");
+// 			this.pagesView.setVisibility(View.GONE);
+// 	    	this.zoomLayout.clearAnimation();
+// 	    	this.zoomHandler.removeCallbacks(zoomRunnable);
+// 			this.zoomLayout.setVisibility(View.GONE);
+// 			this.textReflowView.setVisibility(View.VISIBLE);
+// 			this.textReflowMode = true;
+// 		} else {
+// 			this.textReflowMenuItem.setTitle("Text Reflow");
+// 			this.textReflowView.setVisibility(View.GONE);
+// 			this.pagesView.setVisibility(View.VISIBLE);
+// 			this.textReflowMode = false;
+// 			this.showZoom();
+// 		}
+// 	}
+// 	
+// 	/**
+// 	 * Change to next or prev page.
+// 	 * Called from text reflow mode buttons.
+// 	 * @param offset if 1 then go to next page, if -1 then go to prev page, otherwise raise IllegalArgumentException
+// 	 */
+// 	private void nextPage(int offset) {
+// 		if (offset == 1) {
+// 			this.pagesView.doAction(Actions.ACTION_FULL_PAGE_DOWN);
+// 		} else if (offset == -1) {
+// 			this.pagesView.doAction(Actions.ACTION_FULL_PAGE_UP);
+// 		} else {
+// 			throw new IllegalArgumentException("invalid offset: " + offset);
+// 		}
+// 		if (this.textReflowMode) {
+// 			int page = this.pagesView.getCurrentPage();
+// 			String text = this.pdf.getText(page);
+// 			this.textReflowTextView.setText(text);
+// 			this.textReflowScrollView.scrollTo(0,0);
+// 		}
+// 	}
+// #endif
+
 }
