@@ -17,6 +17,7 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.SystemClock;
+import android.util.FloatMath;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnDoubleTapListener;
@@ -50,9 +51,6 @@ public class PagesView extends View implements
 	private static final int MAX_TILE_WIDTH = 640;
 	private static final int MIN_TILE_HEIGHT = 128;
 	private static final int MAX_TILE_PIXELS = 640*360;
-	
-//	private final static int MAX_ZOOM = 4000;
-//	private final static int MIN_ZOOM = 100;
 	
 	/**
 	 * Space between screen edge and page and between pages.
@@ -424,14 +422,6 @@ public class PagesView extends View implements
 	}
 	
 	/**
-	 * Get current maximum page height by page number taking into account zoom and rotation
-	 */
-/*	private int getCurrentMaxPageHeight() {
-		float realpageheight = this.maxRealPageSize[this.rotation % 2 == 0 ? 1 : 0];
-		return (int)(realpageheight * scaling0 * (this.zoomLevel*0.001f));
-	} */
-	
-	/**
 	 * Get current maximum page width by page number taking into account zoom and rotation
 	 */
 	private int getCurrentDocumentHeight() {
@@ -752,17 +742,6 @@ public class PagesView extends View implements
 						r.right * z + pagex, r.bottom * z + pagey,
 						r.right * z + pagex, r.top * z + pagey,
 						this.findResultsPaint);
-//			canvas.drawRect(
-//					r.left * z + pagex,
-//					r.top * z + pagey,
-//					r.right * z + pagex,
-//					r.bottom * z + pagey,
-//					this.findResultsPaint);
-//			Log.d(TAG, "marker lands on: " +
-//					(r.left * z + pagex) + ", " +
-//					(r.top * z + pagey) + ", " + 
-//					(r.right * z + pagex) + ", " +
-//					(r.bottom * z + pagey) + ", ");
 			}
 		}
 	}
@@ -787,9 +766,9 @@ public class PagesView extends View implements
 	 * @return distance in multitouch event
 	 */
 	private float distance(MotionEvent event) {
-		double dx = event.getX(0)-event.getX(1);
-		double dy = event.getY(0)-event.getY(1);
-		return (float)Math.sqrt(dx*dx+dy*dy);
+		float dx = event.getX(0)-event.getX(1);
+		float dy = event.getY(0)-event.getY(1);
+		return FloatMath.sqrt(dx*dx+dy*dy);
 	}
 
 
@@ -1105,56 +1084,7 @@ public class PagesView extends View implements
 		this.currentPage = page;
 		this.invalidate();
 	}
-	
-//	/**
-//	 * Compute what's currently visible.
-//	 * @return collection of tiles that define what's currently visible
-//	 */
-//	private Collection<Tile> computeVisibleTiles() {
-//		LinkedList<Tile> tiles = new LinkedList<Tile>();
-//		float viewx = this.left + (this.dragx1 - this.dragx);
-//		float viewy = this.top + (this.dragy1 - this.dragy);
-//		float pagex = MARGIN;
-//		float pagey = MARGIN;
-//		float pageWidth;
-//		float pageHeight;
-//		int tileix;
-//		int tileiy;
-//		int thisPageTileCountX;
-//		int thisPageTileCountY;
-//		float tilex;
-//		float tiley;
-//		for(int page = 0; page < this.pageSizes.length; ++page) {
-//			
-//			pageWidth = this.getCurrentPageWidth(page);
-//			pageHeight = this.getCurrentPageHeight(page);
-//			
-//			thisPageTileCountX = (int)Math.ceil(pageWidth / TILE_SIZE);
-//			thisPageTileCountY = (int)Math.ceil(pageHeight / TILE_SIZE);
-//			
-//			if (viewy + this.height < pagey) continue; /* before first visible page */
-//			if (viewx > pagey + pageHeight) break; /* after last page */
-//
-//			for(tileix = 0; tileix < thisPageTileCountX; ++tileix) {
-//				for(tileiy = 0; tileiy < thisPageTileCountY; ++tileiy) {
-//					tilex = pagex + tileix * TILE_SIZE;
-//					tiley = pagey + tileiy * TILE_SIZE;
-//					if (rectsintersect(viewx, viewy, viewx+this.width, viewy+this.height,
-//							tilex, tiley, tilex+TILE_SIZE, tiley+TILE_SIZE)) {
-//						tiles.add(new Tile(page, this.zoomLevel, (int)tilex, (int)tiley, this.rotation));
-//					}
-//				}
-//			}
-//			
-//			/* move to next page */
-//			pagey += this.getCurrentPageHeight(page) + MARGIN;
-//		}
-//		return tiles;
-//	}
-//	synchronized Collection<Tile> getVisibleTiles() {
-//		return this.visibleTiles;
-//	}
-	
+
 	/**
 	 * Rotate pages.
 	 * Updates rotation variable, then invalidates view.
@@ -1186,16 +1116,6 @@ public class PagesView extends View implements
 		return this.findMode;
 	}
 
-//	/**
-//	 * Ask pages provider to focus on next find result.
-//	 * @param forward direction of search - true for forward, false for backward
-//	 */
-//	public void findNext(boolean forward) {
-//		this.pagesProvider.findNext(forward);
-//		this.scrollToFindResult();
-//		this.invalidate();
-//	}
-	
 	/**
 	 * Move viewport position to find result (if any).
 	 * Does not call invalidate().

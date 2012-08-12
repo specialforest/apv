@@ -37,7 +37,6 @@ JNIEXPORT jint JNICALL
 JNI_OnLoad(JavaVM *jvm, void *reserved) {
     __android_log_print(ANDROID_LOG_INFO, PDFVIEW_LOG_TAG, "JNI_OnLoad");
     fz_accelerate();
-    /* pdf_setloghandler(pdf_android_loghandler); */
     return JNI_VERSION_1_2;
 }
 
@@ -220,9 +219,6 @@ Java_cx_hell_android_lib_pdf_PDF_getPageSize(
     error = get_page_size(pdf, pageno, &width, &height);
     if (error != 0) {
         __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "get_page_size error: %d", (int)error);
-        /*
-        __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "fitz error is:\n%s", fz_errorbuf);
-        */
         return 2;
     }
 
@@ -293,28 +289,6 @@ Java_cx_hell_android_lib_pdf_PDF_freeMemory(
         free(pdf->pages);
     }
 
-    /*
-    if (pdf->textlines) {
-        int i;
-        int pagecount;
-        pagecount = pdf_getpagecount(pdf->xref);
-        for(i = 0; i < pagecount; ++i) {
-            if (pdf->textlines[i]) {
-                pdf_droptextline(pdf->textlines[i]);
-            }
-        }
-        free(pdf->textlines);
-        pdf->textlines = NULL;
-    }
-    */
-
-    /*
-    if (pdf->drawcache) {
-        fz_freeglyphcache(pdf->drawcache);
-        pdf->drawcache = NULL;
-    }
-    */
-
     /* pdf->fileno is dup()-ed in parse_pdf_fileno */
     if (pdf->fileno >= 0) close(pdf->fileno);
     if (pdf->glyph_cache)
@@ -324,76 +298,6 @@ Java_cx_hell_android_lib_pdf_PDF_freeMemory(
 
     free(pdf);
 }
-
-
-#if 0
-JNIEXPORT void JNICALL
-Java_cx_hell_android_pdfview_PDF_export(
-        JNIEnv *env,
-        jobject this) {
-    pdf_t *pdf = NULL;
-    jobject results = NULL;
-    pdf_page *page = NULL;
-    fz_text_span *text_span = NULL, *ln = NULL;
-    fz_device *dev = NULL;
-    char *textlinechars;
-    char *found = NULL;
-    fz_error error = 0;
-    jobject find_result = NULL;
-    int pageno = 0;
-    int pagecount;
-    int fd;
-
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "export to txt");
-
-    pdf = get_pdf_from_this(env, this);
-
-    pagecount = pdf_count_pages(pdf->xref);
-
-    fd = open("/tmp/pdfview-export.txt", O_WRONLY|O_CREAT, 0666);
-    if (fd < 0) {
-         __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "Error opening /tmp/pdfview-export.txt");
-        return;
-    }
-
-    for(pageno = 0; pageno < pagecount ; pageno++) {
-        page = get_page(pdf, pageno);
-
-        if (pdf->last_pageno != pageno && NULL != pdf->xref->store) {
-            pdf_age_store(pdf->xref->store, TEXT_STORE_MAX_AGE);
-            pdf->last_pageno = pageno;
-        }
-
-      text_span = fz_new_text_span();
-      dev = fz_new_text_device(text_span);
-      error = pdf_run_page(pdf->xref, page, dev, fz_identity);
-      if (error)
-      {
-          /* TODO: cleanup */
-          fz_rethrow(error, "text extraction failed");
-          return;
-      }
-
-      /* TODO: Detect paragraph breaks using bbox field */
-      for(ln = text_span; ln; ln = ln->next) {
-          int i;
-          textlinechars = (char*)malloc(ln->len + 1);
-          for(i = 0; i < ln->len; ++i) textlinechars[i] = ln->text[i].c;
-          textlinechars[i] = '\n';
-          write(fd, textlinechars, ln->len+1);
-          free(textlinechars);
-      }
-
-      fz_free_device(dev);
-      fz_free_text_span(text_span);
-    }
-
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "export complete");
-
-    close(fd);
-}
-#endif
-
 
 /* wcsstr() seems broken--it matches too much */
 wchar_t* widestrstr(wchar_t* haystack, int haystack_length, wchar_t* needle, int needle_length) {
@@ -507,35 +411,16 @@ Java_cx_hell_android_lib_pdf_PDF_find(
                 {
                     int i = 0;
                     int i0, i1;
-                    /* int x, y; */
                     fz_bbox charbox;
                     i0 = (found-textlinechars);
                     i1 = i0 + length;
                     for(i = i0; i < i1; ++i) {
                         __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "adding marker for letter %d: %c", i, textlinechars[i]);
-                        /* 
-                        x = ln->text[i].x;
-                        y = ln->text[i].y;
-                        convert_point_pdf_to_apv(pdf, pageno, &x, &y);
-                        */
                         charbox = ln->text[i].bbox;
                         convert_box_pdf_to_apv(pdf, pageno, &charbox);
-                        /* add_find_result_marker(env, find_result, x-2, y-2, x+2, y+2); */
                         add_find_result_marker(env, find_result, charbox.x0-2, charbox.y0-2, charbox.x1+2, charbox.y1+2); /* TODO: check errors */
 
                     }
-                    /* TODO: obviously this sucks massively, good God please forgive me for writing this; if only I had more time... */
-                    /*
-                    x = ((float)(ln->text[i1-1].x - ln->text[i0].x)) / (float)strlen(ctext) + ln->text[i1-1].x;
-                    y = ((float)(ln->text[i1-1].y - ln->text[i0].y)) / (float)strlen(ctext) + ln->text[i1-1].y;
-                    convert_point_pdf_to_apv(pdf, pageno, &x, &y);
-                    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "adding final marker");
-                    add_find_result_marker(env,
-                            find_result,
-                            x-2, y-2,
-                            x+2, y+2
-                        );
-                    */
                 }
                 __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "adding find result to list");
                 add_find_result_to_list(env, &results, find_result);
@@ -814,61 +699,6 @@ pdf_t* create_pdf_t() {
     return pdf;
 }
 
-
-#if 0
-/**
- * Parse bytes into PDF struct.
- * @param bytes pointer to bytes that should be parsed
- * @param len length of byte buffer
- * @return initialized pdf_t struct; or NULL if loading failed
- */
-pdf_t* parse_pdf_bytes(unsigned char *bytes, size_t len, jstring box_name) {
-    pdf_t *pdf;
-    const char* c_box_name;
-    fz_error error;
-
-    pdf = create_pdf_t();
-    c_box_name = (*env)->GetStringUTFChars(env, box_name, &iscopy);
-    strncpy(pdf->box, box_name, 9);
-    pdf->box[MAX_BOX_NAME] = 0;
-
-    pdf->xref = pdf_newxref();
-    error = pdf_loadxref_mem(pdf->xref, bytes, len);
-    if (error) {
-        __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "got err from pdf_loadxref_mem: %d", (int)error);
-        __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "fz errors:\n%s", fz_errorbuf);
-        /* TODO: free resources */
-        return NULL;
-    }
-
-    error = pdf_decryptxref(pdf->xref);
-    if (error) {
-        return NULL;
-    }
-
-    if (pdf_needspassword(pdf->xref)) {
-        int authenticated = 0;
-        authenticated = pdf_authenticatepassword(pdf->xref, "");
-        if (!authenticated) {
-            /* TODO: ask for password */
-            __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "failed to authenticate with empty password");
-            return NULL;
-        }
-    }
-
-    pdf->xref->root = fz_resolveindirect(fz_dictgets(pdf->xref->trailer, "Root"));
-    fz_keepobj(pdf->xref->root);
-
-    pdf->xref->info = fz_resolveindirect(fz_dictgets(pdf->xref->trailer, "Info"));
-    fz_keepobj(pdf->xref->info);
-
-    pdf->outline = pdf_loadoutline(pdf->xref);
-
-    return pdf;
-}
-#endif
-
-
 /**
  * Parse file into PDF struct.
  * Use filename if it's not null, otherwise use fileno.
@@ -898,17 +728,9 @@ pdf_t* parse_pdf_file(const char *filename, int fileno, const char* password) {
     error = pdf_open_xref_with_stream(&(pdf->xref), file, NULL);
     if (!pdf->xref) {
         __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "got NULL from pdf_openxref");
-        /* __android_log_print(ANDROID_LOG_ERROR, PDFVIEW_LOG_TAG, "fz errors:\n%s", fz_errorbuf); */
         free(pdf);
         return NULL;
     }
-
-    /*
-    error = pdf_decryptxref(pdf->xref);
-    if (error) {
-        return NULL;
-    }
-    */
 
     pdf->invalid_password = 0;
 
@@ -923,11 +745,6 @@ pdf_t* parse_pdf_file(const char *filename, int fileno, const char* password) {
         }
     }
 
-    /* pdf->xref->root = fz_resolveindirect(fz_dictgets(pdf->xref->trailer, "Root"));
-    fz_keepobj(pdf->xref->root);
-    pdf->xref->info = fz_resolveindirect(fz_dictgets(pdf->xref->trailer, "Info"));
-    if (pdf->xref->info) fz_keepobj(pdf->xref->info);
-    */
     pdf->outline = pdf_load_outline(pdf->xref);
 
     error = pdf_load_page_tree(pdf->xref);
@@ -947,30 +764,6 @@ pdf_t* parse_pdf_file(const char *filename, int fileno, const char* password) {
 
     return pdf;
 }
-
-
-/**
- * Calculate zoom to best match given dimensions.
- * There's no guarantee that page zoomed by resulting zoom will fit rectangle max_width x max_height exactly.
- * @param max_width expected max width
- * @param max_height expected max height
- * @param page original page
- * @return zoom required to best fit page into max_width x max_height rectangle
- */
-/*double get_page_zoom(pdf_page *page, int max_width, int max_height) {
-    double page_width, page_height;
-    double zoom_x, zoom_y;
-    double zoom;
-    page_width = page->mediabox.x1 - page->mediabox.x0;
-    page_height = page->mediabox.y1 - page->mediabox.y0;
-
-    zoom_x = max_width / page_width;
-    zoom_y = max_height / page_height;
-
-    zoom = (zoom_x < zoom_y) ? zoom_x : zoom_y;
-
-    return zoom;
-}*/
 
 
 /**
@@ -1002,34 +795,9 @@ pdf_page* get_page(pdf_t *pdf, int pageno) {
             if (pdf->pages[i]) loaded_pages++;
         }
 
-        #if 0
-        if (loaded_pages >= PDFVIEW_MAX_PAGES_LOADED) {
-            int page_to_drop = 0; /* not the page number */
-            int j = 0;
-            __android_log_print(ANDROID_LOG_INFO, PDFVIEW_LOG_TAG, "already loaded %d pages, going to drop random one", loaded_pages);
-            page_to_drop = rand() % loaded_pages;
-            __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "will drop %d-th loaded page", page_to_drop);
-            /* search for page_to_drop-th loaded page and then drop it */
-            for(i = 0; i < pagecount; ++i) {
-                if (pdf->pages[i]) {
-                    /* one of loaded pages, the j-th one */
-                    if (j == page_to_drop) {
-                        __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "found %d-th loaded page, it's %d-th in document, dropping now", page_to_drop, i);
-                        pdf_droppage(pdf->pages[i]);
-                        pdf->pages[i] = NULL;
-                        break;
-                    } else {
-                        j++;
-                    }
-                }
-            }
-        }
-        #endif
-
         error = pdf_load_page(&page, pdf->xref, pageno);
         if (error) {
             __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "pdf_loadpage -> %d", (int)error);
-            /* __android_log_print(ANDROID_LOG_ERROR, "cx.hell.android.pdfview", "fitz error is:\n%s", fz_errorbuf); */
             return NULL;
         }
         pdf->pages[pageno] = page;
@@ -1104,16 +872,6 @@ static jintArray get_page_image_bitmap(JNIEnv *env,
     bbox.y0 = bbox.y0 + top;
     bbox.x1 = bbox.x0 + *width;
     bbox.y1 = bbox.y0 + *height;
-
-
-#if 0
-    error = fz_rendertree(&image, pdf->renderer, page->tree, ctm, fz_roundrect(bbox), 1);
-    if (error) {
-        fz_rethrow(error, "rendering failed");
-        /* TODO: cleanup mem on error, so user can try to open many files without causing memleaks; also report errors nicely to user */
-        return NULL;
-    }
-#endif
 
     image = fz_new_pixmap(gray ? fz_device_gray : fz_device_bgr, *width, *height);
     image->x = bbox.x0;
@@ -1209,65 +967,6 @@ int get_page_size(pdf_t *pdf, int pageno, int *width, int *height) {
     return 0;
 }
 
-
-#if 0
-/**
- * Convert coordinates from pdf to APVs.
- * TODO: faster? lazy?
- * @return error code, 0 means ok
- */
-int convert_point_pdf_to_apv(pdf_t *pdf, int page, int *x, int *y) {
-    fz_error error = 0;
-    fz_obj *pageobj = NULL;
-    fz_obj *rotateobj = NULL;
-    fz_obj *sizeobj = NULL;
-    fz_rect bbox;
-    int rotate = 0;
-    fz_point p;
-
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "convert_point_pdf_to_apv()");
-
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "trying to convert %d x %d to APV coords", *x, *y);
-
-    pageobj = pdf_getpageobject(pdf->xref, page+1);
-    if (!pageobj) return -1;
-    sizeobj = fz_dictgets(pageobj, pdf->box);
-    if (sizeobj == NULL)
-        sizeobj = fz_dictgets(pageobj, "MediaBox");
-    if (!sizeobj) return -1;
-    bbox = pdf_torect(sizeobj);
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "page bbox is %.1f, %.1f, %.1f, %.1f", bbox.x0, bbox.y0, bbox.x1, bbox.y1);
-    rotateobj = fz_dictgets(pageobj, "Rotate");
-    if (fz_isint(rotateobj)) {
-        rotate = fz_toint(rotateobj);
-    } else {
-        rotate = 0;
-    }
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "rotate is %d", (int)rotate);
-
-    p.x = *x;
-    p.y = *y;
-
-    if (rotate != 0) {
-        fz_matrix m;
-        m = fz_rotate(-rotate);
-        bbox = fz_transformrect(m, bbox);
-        p = fz_transformpoint(m, p);
-    }
-
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "after rotate bbox is: %.1f, %.1f, %.1f, %.1f", bbox.x0, bbox.y0, bbox.x1, bbox.y1);
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "after rotate point is: %.1f, %.1f", p.x, p.y);
-
-    *x = p.x - MIN(bbox.x0,bbox.x1);
-    *y = MAX(bbox.y1, bbox.y0) - p.y;
-
-    __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "result is: %d, %d", *x, *y);
-
-    return 0;
-}
-#endif
-
-
 /**
  * Convert coordinates from pdf to APV.
  * Result is stored in location pointed to by bbox param.
@@ -1322,12 +1021,6 @@ int convert_box_pdf_to_apv(pdf_t *pdf, int page, fz_bbox *bbox) {
 
     /* set result: param bounding box relative to left-top corner of page bounding box */
 
-    /*
-    bbox->x0 = MIN(param_bbox.x0, param_bbox.x1) - MIN(page_bbox.x0, page_bbox.x1);
-    bbox->y0 = MIN(param_bbox.y0, param_bbox.y1) - MIN(page_bbox.y0, page_bbox.y1);
-    bbox->x1 = MAX(param_bbox.x0, param_bbox.x1) - MIN(page_bbox.x0, page_bbox.x1);
-    bbox->y1 = MAX(param_bbox.y0, param_bbox.y1) - MIN(page_bbox.y0, page_bbox.y1);
-    */
 
     width = ABS(page_bbox.x0 - page_bbox.x1);
     height = ABS(page_bbox.y0 - page_bbox.y1);
@@ -1514,12 +1207,5 @@ char* extract_text(pdf_t *pdf, int pageno) {
         i++;
     }
     text[i] = 0; /* TODO: add buffer overrun checks */
-    // __android_log_print(ANDROID_LOG_DEBUG, PDFVIEW_LOG_TAG, "extracted text, len: %d, chars: %s", text_len, text);
     return text;
 }
-
-
-
-
-/* vim: set sts=4 ts=4 sw=4 et: */
-
