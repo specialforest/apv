@@ -9,6 +9,7 @@
 
 #include "fitz.h"
 #include "mupdf.h"
+#include "mupdf-internal.h"
 
 #define MAX_BOX_NAME 8
 
@@ -16,8 +17,10 @@
  * Holds pdf info.
  */
 typedef struct {
+    fz_context *ctx;
+
     int last_pageno;
-    pdf_xref *xref;
+    pdf_document *doc;
     fz_outline *outline; // for latest snapshot
     int fileno; /* used only when opening by file descriptor */
     int invalid_password;

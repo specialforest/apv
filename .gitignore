@@ -1,0 +1,16 @@
+pdfview/apps/
+pdfview/bin/
+pdfview/deps/*/
+pdfview/gen/
+pdfview/jni/freetyp*
+pdfview/jni/jpeg*
+pdfview/jni/jbig2dec*
+pdfview/jni/mupdf*
+pdfview/jni/openjpeg*
+pdfview/jni/zlib*
+!pdfview/jni/*.mk
+pdfview/obj/
+pdfview/libs/
+pdfview-tests/assets/
+pdfview-tests/bin/
+pdfview-tests/gen/
