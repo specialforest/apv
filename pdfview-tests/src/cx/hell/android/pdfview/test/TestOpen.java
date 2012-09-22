@@ -7,7 +7,7 @@ import java.io.FileInputStream;
 import android.os.Environment;
 import android.test.AndroidTestCase;
 import android.util.Log;
-import cx.hell.android.pdfview.PDF;
+import cx.hell.android.lib.pdf.PDF;
 
 public class TestOpen extends AndroidTestCase {
 		
@@ -32,7 +32,7 @@ public class TestOpen extends AndroidTestCase {
 		FileDescriptor fd = i.getFD();
 		Exception exception = null;
 		try {
-			PDF pdf = new PDF(fd);
+			PDF pdf = new PDF(fd, 2);
 			Log.d(TAG, "opened " + path + ": " + pdf);
 		} catch (Exception e) {
 			exception = e;
@@ -48,7 +48,7 @@ public class TestOpen extends AndroidTestCase {
 		Exception exception = null;
 		int pageCount = -1;
 		try {
-			PDF pdf = new PDF(fd);
+			PDF pdf = new PDF(fd, 2);
 			Log.d(TAG, "opened " + path + ": " + pdf);
 			pageCount = pdf.getPageCount();
 			Log.d(TAG, "page count is " + path + ": " + pageCount);
